@@ -3,6 +3,7 @@ import { generateUploadUrl, verifyAndDownload } from '../controllers/fileControl
 
 const router = express.Router();
 
+router.get('/health', (req, res) => res.status(200).json({ status: 'online' }));
 router.post('/upload', generateUploadUrl);
 router.post('/download/:id', verifyAndDownload);
 
