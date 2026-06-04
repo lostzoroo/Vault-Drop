@@ -31,8 +31,8 @@ const fileSchema = new mongoose.Schema(
 
 fileSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-fileSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+fileSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
   
   try {
     const salt = await bcrypt.genSalt(12);
