@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client } from '../config/aws.js';
 import { config } from '../config/env.js';
@@ -82,6 +82,13 @@ export const verifyAndDownload = async (req, res, next) => {
     });
 
     const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: config.aws.bucketName,
+      Key: fileRecord.s3Key,
+    })
+
+    s3Client.send(deleteCommand).catch(err => console.error(`[S3 Delete Error]: ${err.message}`))
 
     fileRecord.isDownloaded = true;
     await fileRecord.save();
