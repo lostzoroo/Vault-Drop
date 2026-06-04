@@ -173,11 +173,14 @@ export default function FileUploader() {
             </button>
           </div>
           <button
-            onClick={() => setShareLink('')}
+            onClick={() => {
+                setShareLink('');
+                setStatus({ type: '', message: '' });
+            }}
             className="w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 font-medium text-xs rounded-lg transition-colors"
-          >
+            >
             Drop Another File
-          </button>
+        </button>
         </div>
       )}
     </div>
