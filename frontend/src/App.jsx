@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import {React, useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import FileUploader from './components/FileUploader';
 import FileDownloader from './components/FileDownloader';
@@ -32,6 +33,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="bottom-center" />
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans selection:bg-indigo-500 selection:text-white">
         
         {/* Structural Header Banner */}

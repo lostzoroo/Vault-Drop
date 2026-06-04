@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { fileService } from '../services/api';
-import { Upload, Lock, Clock, CheckCircle, AlertCircle, Loader2, Copy } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { Upload, Lock, Clock, CheckCircle, Loader2, Copy } from 'lucide-react';
 
 export default function FileUploader() {
   const [file, setFile] = useState(null);
   const [password, setPassword] = useState('');
   const [expiresIn, setExpiresIn] = useState('15'); // default 15 minutes
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: '', message: '' });
   const [shareLink, setShareLink] = useState('');
 
   const handleFileChange = (e) => {
@@ -20,15 +20,14 @@ export default function FileUploader() {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file || !password) {
-      setStatus({ type: 'error', message: 'Please select a file and enter a access password.' });
+      toast.error('Please select a file and enter an access password.');
       return;
     }
 
     setLoading(true);
-    setStatus({ type: 'info', message: 'Securing your vault and provisioning storage links...' });
+    const toastId = toast.loading('Securing vault and provisioning links...');
 
     try {
-      // Step 1: Query backend for S3 Presigned PUT URL & build DB record
       const backendResponse = await fileService.requestUploadUrl({
         originalName: file.name,
         password: password,
@@ -36,29 +35,24 @@ export default function FileUploader() {
       });
 
       if (!backendResponse.success) {
-        throw new Error(backendResponse.message || 'Failed to initialize secure upload pipeline.');
+        throw new Error(backendResponse.message || 'Failed to initialize pipeline.');
       }
 
       const { uploadUrl, fileId } = backendResponse.data;
 
-      // Step 2: Stream the raw binary payload directly to AWS S3 bucket bypass server memory
-      setStatus({ type: 'info', message: 'Streaming payload directly to encrypted S3 vault...' });
+      toast.loading('Streaming payload directly to encrypted S3 vault...', { id: toastId });
       await fileService.uploadDirectToS3(uploadUrl, file);
 
-      // Step 3: Compute localized frontend shared download link
       const derivedLink = `${window.location.origin}/download/${fileId}`;
       setShareLink(derivedLink);
-      setStatus({ type: 'success', message: 'File successfully encrypted and stored in the zero-trust cloud.' });
       
-      // Reset input state fields safely
+      toast.success('Vault dropped successfully!', { id: toastId });
+      
       setFile(null);
       setPassword('');
     } catch (error) {
       console.error(error);
-      setStatus({
-        type: 'error',
-        message: error.response?.data?.message || error.message || 'An unhandled pipeline exception occurred.',
-      });
+      toast.error(error.response?.data?.message || error.message || 'Upload failed.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -125,19 +119,6 @@ export default function FileUploader() {
               <option value="1440">24 Hours</option>
             </select>
           </div>
-
-          {/* Dynamic state feedback lines */}
-          {status.message && (
-            <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${
-              status.type === 'error' ? 'bg-rose-50 text-rose-600' :
-              status.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
-            }`}>
-              {status.type === 'error' ? <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> : 
-               status.type === 'success' ? <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" /> : 
-               <Loader2 className="w-4 h-4 shrink-0 animate-spin mt-0.5" />}
-              <span>{status.message}</span>
-            </div>
-          )}
 
           {/* Fire upload pipeline execution CTA */}
           <button

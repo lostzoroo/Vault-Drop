@@ -1,28 +1,27 @@
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fileService } from '../services/api';
-import { Download, Lock, AlertCircle, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Download, Lock, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 export default function FileDownloader() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: '', message: '' });
   const [downloaded, setDownloaded] = useState(false);
 
   const handleDownload = async (e) => {
     e.preventDefault();
     if (!password) {
-      setStatus({ type: 'error', message: 'Passphrase is required to decrypt.' });
+      toast.error('Passphrase is required to decrypt.');
       return;
     }
 
     setLoading(true);
-    setStatus({ type: 'info', message: 'Verifying cryptographic hash...' });
+    const toastId = toast.loading('Verifying cryptographic hash...');
 
     try {
-      // 1. Send password to backend to verify and burn the record
       const response = await fileService.verifyAndPasswordDownload(id, password);
       
       if (!response.success) {
@@ -31,9 +30,8 @@ export default function FileDownloader() {
 
       const { downloadUrl, originalName } = response.data;
 
-      setStatus({ type: 'info', message: 'Access granted. Executing secure cloud pull...' });
+      toast.loading('Access granted. Executing secure cloud pull...', { id: toastId });
 
-      // 2. Trigger the direct-to-S3 download in the browser
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('download', originalName);
@@ -42,13 +40,10 @@ export default function FileDownloader() {
       link.parentNode.removeChild(link);
 
       setDownloaded(true);
-      setStatus({ type: 'success', message: 'Asset downloaded. The vault link has been permanently burned.' });
+      toast.success('Asset downloaded. Vault link permanently burned.', { id: toastId });
     } catch (error) {
       console.error(error);
-      setStatus({
-        type: 'error',
-        message: error.response?.data?.message || error.message || 'Decryption failed or link expired.',
-      });
+      toast.error(error.response?.data?.message || error.message || 'Decryption failed.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -89,17 +84,6 @@ export default function FileDownloader() {
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
-
-          {status.message && (
-            <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${
-              status.type === 'error' ? 'bg-rose-50 text-rose-600' :
-              status.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
-            }`}>
-              {status.type === 'error' ? <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> : 
-               <Loader2 className="w-4 h-4 shrink-0 animate-spin mt-0.5" />}
-              <span>{status.message}</span>
-            </div>
-          )}
 
           <button
             type="submit"
